@@ -3,6 +3,7 @@
 # Colorized output
 BOLD="\033[1m"
 GREEN="\033[32m"
+ORANGE="\033[38;5;208m"
 YELLOW="\033[33m"
 RESET="\033[0m"
 
@@ -18,20 +19,31 @@ ask_continue() {
   done
 }
 
-printf "${GREEN}${BOLD}Running 'chezmoi re-add'...${RESET}\n"
-chezmoi re-add
-ask_continue
+printf "${ORANGE}${BOLD}Running 'chezmoi re-add'...${RESET}\n"
+readd_output=$(chezmoi re-add 2>&1)
+if [[ -z $readd_output ]]; then
+  printf "${GREEN}Nothing to re-add. Checking the repository for any changes to commit...${RESET}\n"
+else
+  printf "${GREEN}Re-added files:${RESET}\n${readd_output}\n"
+  ask_continue
 
-printf "${GREEN}${BOLD}Running 'chezmoi apply'...${RESET}\n"
-chezmoi apply
-ask_continue
+  printf "${ORANGE}${BOLD}Running 'chezmoi apply'...${RESET}\n"
+  chezmoi apply
+  ask_continue
+fi
 
-printf "${GREEN}${BOLD}Changing directory to chezmoi's git repository...${RESET}\n"
+printf "${ORANGE}${BOLD}Changing directory to chezmoi's git repository...${RESET}\n"
 cd "$HOME/.local/share/chezmoi" || exit
 
-printf "${GREEN}${BOLD}Running 'git status'...${RESET}\n"
-git status
-ask_continue
+printf "${ORANGE}${BOLD}Running 'git status'...${RESET}\n"
+git_status_output=$(git status --porcelain)
+if [[ -z $git_status_output ]]; then
+  printf "${GREEN}Nothing to commit. Exiting...${RESET}\n"
+  exit 0
+else
+  git status
+  ask_continue
+fi
 
 printf "${YELLOW}Please enter a commit message: ${RESET}"
 read -r commit_message
