@@ -1,54 +1,47 @@
-#!/bin/sh
+#!/bin/bash
 
 # Colorized output
-GREEN="\033[0;32m"
-YELLOW="\033[0;33m"
+BOLD="\033[1m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
 RESET="\033[0m"
 
-# Function to prompt the user
-prompt_continue() {
+ask_continue() {
   while true; do
-    printf '%sDo you want to continue? [y/n]: %s' "$YELLOW" "$RESET"
-    read -r choice
-    case $choice in
-      [Yy]* ) return 0;;
-      [Nn]* ) return 1;;
-      * ) printf '%sPlease answer y(es) or n(o).%s\n' "$YELLOW" "$RESET";;
+    printf "${YELLOW}Do you want to continue? [y/n]: ${RESET}"
+    read -r response
+    case $response in
+      [Yy]* ) break;;
+      [Nn]* ) exit 0;;
+      * ) echo "Please answer yes or no.";;
     esac
   done
 }
 
-printf '%sRunning '\''chezmoi re-add'\''...%s\n' "$GREEN" "$RESET"
+printf "${GREEN}${BOLD}Running 'chezmoi re-add'...${RESET}\n"
 chezmoi re-add
-if prompt_continue; then
-  printf '%sRunning '\''chezmoi apply'\''...%s\n' "$GREEN" "$RESET"
-  chezmoi apply
-  if prompt_continue; then
-    printf '%sChanging directory to chezmoi'\''s git repository...%s\n' "$GREEN" "$RESET"
-    cd "$HOME/.local/share/chezmoi" || exit 1
+ask_continue
 
-    printf '%sRunning '\''git status'\''...%s\n' "$GREEN" "$RESET"
-    git status
-    if prompt_continue; then
-      printf '%sEnter the commit message: %s' "$YELLOW" "$RESET"
-      read -r commit_message
+printf "${GREEN}${BOLD}Running 'chezmoi apply'...${RESET}\n"
+chezmoi apply
+ask_continue
 
-      printf '%sRunning '\''git commit'\''...%s\n' "$GREEN" "$RESET"
-      git commit -m "$commit_message"
-      if prompt_continue; then
-        printf '%sDo you want to push the commit? [y/n]: %s' "$YELLOW" "$RESET"
-        read -r push_choice
-        case $push_choice in
-          [Yy]* )
-            printf '%sRunning '\''git push'\''...%s\n' "$GREEN" "$RESET"
-            git push origin;;
-          [Nn]* )
-            printf '%sCommit has been updated locally. You can push it later.%s\n' "$GREEN" "$RESET";;
-          * ) printf '%sInvalid choice. Commit has been updated locally. You can push it later.%s\n' "$YELLOW" "$RESET";;
-        esac
-      fi
-    fi
-  fi
+printf "${GREEN}${BOLD}Changing directory to chezmoi's git repository...${RESET}\n"
+cd "$HOME/.local/share/chezmoi" || exit
+
+printf "${GREEN}${BOLD}Running 'git status'...${RESET}\n"
+git status
+ask_continue
+
+printf "${YELLOW}Please enter a commit message: ${RESET}"
+read -r commit_message
+git commit -m "$commit_message"
+ask_continue
+
+printf "${YELLOW}Do you want to push the commit? [y/n]: ${RESET}"
+read -r push_response
+if [[ $push_response =~ ^[Yy] ]]; then
+  git push origin main
 else
-  printf '%sAborted.%s\n' "$GREEN" "$RESET"
+  printf "${GREEN}${BOLD}You are updated locally. You can push your commits when you want.${RESET}\n"
 fi
